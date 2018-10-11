@@ -9,12 +9,13 @@ let TESTER = {};
     "use strict";
     
     let tests = [],
-        currentTest = parseInt(window.localStorage.getItem("Tests-currentTest") || "0");
+        currentTest = parseInt(window.localStorage.getItem("Tests-currentTest") || "0"),
+        args;
     
     const nextTest = function () {
         if (tests[currentTest].type === "test") {
 
-            tests[currentTest].func(onTestComplete);
+            tests[currentTest].func(onTestComplete, args);
 
         } else if (tests[currentTest].type === "run") {
 
@@ -23,7 +24,7 @@ let TESTER = {};
             window.localStorage.setItem("Tests-currentTest", currentTest.toString());
             tests[currentTest - 1].func(function () {
                 nextTest();
-            });
+            }, args);
 
         }
     };
@@ -37,11 +38,11 @@ let TESTER = {};
                 nextTest();
             } else {
                 console.log("%cALL " + tests.filter(function (test) {return test.type === "test"}).length + " TESTS COMPLETE", "color: green");
-                currentTest = 0;
-                window.localStorage.setItem("Tests-currentTest", "0");
+                TESTER.reset(true);
             }
         } else {
             console.error("TEST FAILED: " + message);
+            TESTER.reset(true);
         }
         
     };
@@ -55,19 +56,25 @@ let TESTER = {};
     };
 
     TESTER.start = function () {
+        args = Array.from(arguments);
+        window.localStorage.setItem("Tests-args", JSON.stringify(args));
         nextTest();
     };
     
-    TESTER.reset = function () {
+    TESTER.reset = function (hideMessage) {
         currentTest = 0;
         window.localStorage.setItem("Tests-currentTest", "0");
-        console.log("%cTesting reset", "color: green");
+        window.localStorage.removeItem("Tests-args");
+        if (!hideMessage) {
+            console.log("%cTesting reset", "color: green");   
+        }
     }
     
     // Init
     if (currentTest > 0) {
         console.log("%cTESTING CONTINUED...", "color: green");
-        window.setTimeout(TESTER.start, 1000); // delay, to give time for tests to load
+        args = JSON.parse(window.localStorage.getItem("Tests-args") || "[]");
+        window.setTimeout(nextTest, 1000); // delay, to give time for tests to load
     }
     
 }());
